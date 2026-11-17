@@ -13,12 +13,32 @@ import java.util.regex.Pattern;
 public class HashtagGenerator {
     private static final String TAG = "HashtagGen";
     
-    private static final Set<String> STOP_WORDS = new HashSet<>(Arrays.asList(
+    // Words to NEVER use as hashtags
+    private static final Set<String> BLACKLIST = new HashSet<>(Arrays.asList(
+        // Stop words
         "how", "to", "in", "on", "the", "a", "for", "with", "and", "is", "it", "of", "at", "by", "an",
         "be", "this", "that", "from", "or", "are", "as", "was", "were", "been", "have", "has", "had",
         "do", "does", "did", "will", "would", "could", "should", "can", "what", "why", "when", "where",
         "who", "which", "your", "my", "you", "me", "he", "she", "they", "we", "them", "us", "its", "about",
-        "best", "top", "new", "old", "free", "paid", "easy", "fast", "quick", "simple", "video", "videos"
+        "best", "top", "new", "old", "free", "paid", "easy", "fast", "quick", "simple", "video", "videos",
+        // Languages (irrelevant)
+        "tamil", "telugu", "malayalam", "kannada", "hindi", "english", "spanish", "french", "german",
+        // Random common words that appear in many suggestions
+        "home", "house", "room", "kitchen", "bedroom", "bathroom", "office", "school", "college",
+        "milk", "water", "cheese", "butter", "oil", "salt", "sugar", "rice", "bread", "egg", "eggs",
+        "phone", "mobile", "laptop", "computer", "tablet", "tv", "television", "radio",
+        "car", "bike", "bus", "train", "plane", "flight", "travel", "trip",
+        "boy", "boys", "girl", "girls", "man", "men", "woman", "women", "kid", "kids", "child", "children",
+        "copy", "paste", "cut", "edit", "download", "upload", "share", "save", "delete", "remove",
+        "website", "app", "application", "software", "program", "tool", "tools",
+        "make", "making", "use", "using", "get", "getting", "give", "giving", "take", "taking",
+        "come", "coming", "go", "going", "see", "seeing", "look", "looking", "watch", "watching",
+        "work", "working", "play", "playing", "run", "running", "walk", "walking", "talk", "talking",
+        "like", "love", "hate", "want", "need", "know", "think", "feel", "say", "tell", "ask",
+        "good", "bad", "great", "nice", "cool", "awesome", "amazing", "beautiful", "ugly",
+        "big", "small", "large", "tiny", "huge", "long", "short", "high", "low", "hot", "cold",
+        "first", "second", "third", "last", "next", "previous", "before", "after",
+        "yes", "no", "maybe", "always", "never", "sometimes", "often", "rarely"
     ));
 
     public static String generateHashtags(String title) {
@@ -30,58 +50,64 @@ public class HashtagGenerator {
             // 1. Extract meaningful words from title
             String clean = title.toLowerCase().replaceAll("[^a-z0-9\\s]", "");
             String[] titleWords = clean.split("\\s+");
-            Set<String> titleWordSet = new HashSet<>();
+            Set<String> titleWordSet = new LinkedHashSet<>();
             
             for (String word : titleWords) {
-                if (word != null && word.length() >= 3 && !STOP_WORDS.contains(word)) {
+                if (word != null && word.length() >= 3 && !BLACKLIST.contains(word)) {
                     hashtags.add("#" + word);
                     titleWordSet.add(word);
                 }
             }
             
-            // 2. Fetch related suggestions from API
+            // 2. Fetch suggestions and count word frequency
             try {
                 List<String> suggestions = fetchSuggestions(title);
-                
-                // 3. Extract ONLY words that are related to title
                 Map<String, Integer> wordFrequency = new HashMap<>();
                 
+                // Count how many times each word appears across ALL suggestions
                 for (String suggestion : suggestions) {
                     String[] words = suggestion.toLowerCase().split("\\s+");
+                    Set<String> uniqueWords = new HashSet<>();
                     
-                    // Check if this suggestion contains ANY title word
-                    boolean isRelated = false;
                     for (String word : words) {
-                        if (titleWordSet.contains(word)) {
-                            isRelated = true;
-                            break;
+                        if (word.length() >= 3 && !BLACKLIST.contains(word) && !titleWordSet.contains(word)) {
+                            uniqueWords.add(word);
                         }
                     }
                     
-                    // Only extract words from related suggestions
-                    if (isRelated) {
-                        for (String word : words) {
-                            if (word.length() >= 3 && !STOP_WORDS.contains(word) && !titleWordSet.contains(word)) {
-                                wordFrequency.put(word, wordFrequency.getOrDefault(word, 0) + 1);
-                            }
-                        }
+                    // Count each unique word once per suggestion
+                    for (String word : uniqueWords) {
+                        wordFrequency.put(word, wordFrequency.getOrDefault(word, 0) + 1);
                     }
                 }
                 
-                // 4. Add most frequent related words
-                List<Map.Entry<String, Integer>> sortedWords = new ArrayList<>(wordFrequency.entrySet());
-                sortedWords.sort((a, b) -> b.getValue() - a.getValue());
-                
-                for (int i = 0; i < Math.min(5, sortedWords.size()); i++) {
-                    if (hashtags.size() >= 8) break;
-                    hashtags.add("#" + sortedWords.get(i).getKey());
+                // 3. Only keep words that appear in at least 2 suggestions (high relevance)
+                List<Map.Entry<String, Integer>> relevantWords = new ArrayList<>();
+                for (Map.Entry<String, Integer> entry : wordFrequency.entrySet()) {
+                    if (entry.getValue() >= 2) { // Must appear in 2+ suggestions
+                        relevantWords.add(entry);
+                    }
                 }
                 
-                // 5. Create 2-word compounds (title word + related word)
-                if (hashtags.size() < 10 && !sortedWords.isEmpty()) {
-                    String firstTitleWord = titleWordSet.iterator().next();
-                    String relatedWord = sortedWords.get(0).getKey();
-                    hashtags.add("#" + firstTitleWord + relatedWord);
+                // Sort by frequency
+                relevantWords.sort((a, b) -> b.getValue() - a.getValue());
+                
+                // 4. Add top relevant words (max 3)
+                for (int i = 0; i < Math.min(3, relevantWords.size()); i++) {
+                    if (hashtags.size() >= 8) break;
+                    hashtags.add("#" + relevantWords.get(i).getKey());
+                }
+                
+                // 5. Create smart 2-word compounds (title word + most relevant word)
+                if (hashtags.size() < 10 && !relevantWords.isEmpty() && !titleWordSet.isEmpty()) {
+                    String mainTitleWord = titleWordSet.iterator().next();
+                    String relatedWord = relevantWords.get(0).getKey();
+                    String compound = "#" + mainTitleWord + relatedWord;
+                    
+                    // Only add if not too long
+                    if (compound.length() <= 25) {
+                        hashtags.add(compound);
+                    }
                 }
                 
             } catch (Exception e) {
