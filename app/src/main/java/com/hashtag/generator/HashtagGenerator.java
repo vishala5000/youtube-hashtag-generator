@@ -1,8 +1,10 @@
 package com.hashtag.generator;
 
+import android.util.Log;
 import java.util.*;
 
 public class HashtagGenerator {
+    private static final String TAG = "HashtagGen";
     
     private static final Set<String> STOP_WORDS = new HashSet<>(Arrays.asList(
         "how", "to", "in", "on", "the", "a", "for", "with", "and", "is", "it", "of", "at", "by", "an",
@@ -13,35 +15,51 @@ public class HashtagGenerator {
     ));
 
     public static String generateHashtags(String title) {
-        String clean = title.toLowerCase().replaceAll("[^a-z0-9\\s]", "");
-        String[] words = clean.split("\\s+");
-        
-        Set<String> hashtags = new LinkedHashSet<>();
-        
-        // Extract meaningful single words from title
-        for (String word : words) {
-            if (word.length() >= 3 && !STOP_WORDS.contains(word)) {
-                hashtags.add("#" + word);
+        try {
+            Log.i(TAG, "Generating hashtags for: " + title);
+            
+            if (title == null || title.trim().isEmpty()) {
+                return "Please enter a title";
             }
-        }
-        
-        // Add universal viral tags
-        String[] viral = {"#viral", "#trending", "#youtube", "#shorts", "#fyp"};
-        for (String v : viral) {
-            if (hashtags.size() < 10) {
-                hashtags.add(v);
+            
+            String clean = title.toLowerCase().replaceAll("[^a-z0-9\\s]", "");
+            String[] words = clean.split("\\s+");
+            
+            Set<String> hashtags = new LinkedHashSet<>();
+            
+            // Extract meaningful single words from title
+            for (String word : words) {
+                if (word != null && word.length() >= 3 && !STOP_WORDS.contains(word)) {
+                    hashtags.add("#" + word);
+                }
             }
+            
+            // Add universal viral tags
+            String[] viral = {"#viral", "#trending", "#youtube", "#shorts", "#fyp"};
+            for (String v : viral) {
+                if (hashtags.size() < 10) {
+                    hashtags.add(v);
+                }
+            }
+            
+            // Build output (exactly 10)
+            List<String> list = new ArrayList<>(hashtags);
+            StringBuilder result = new StringBuilder();
+            int limit = Math.min(10, list.size());
+            
+            for (int i = 0; i < limit; i++) {
+                result.append(list.get(i));
+                if (i < limit - 1) result.append(" ");
+            }
+            
+            String output = result.toString();
+            Log.i(TAG, "Generated: " + output);
+            
+            return output.isEmpty() ? "No hashtags generated" : output;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error generating hashtags", e);
+            return "Error: " + e.getMessage();
         }
-        
-        // Build output (exactly 10)
-        List<String> list = new ArrayList<>(hashtags);
-        StringBuilder result = new StringBuilder();
-        int limit = Math.min(10, list.size());
-        for (int i = 0; i < limit; i++) {
-            result.append(list.get(i));
-            if (i < limit - 1) result.append(" ");
-        }
-        
-        return result.toString();
     }
 }
