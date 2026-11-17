@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
 public class HashtagGenerator {
     private static final String TAG = "HashtagGen";
     
-    // Only block TRUE stop words (not languages or meaningful words)
     private static final Set<String> STOP_WORDS = new HashSet<>(Arrays.asList(
         "how", "to", "in", "on", "the", "a", "for", "with", "and", "is", "it", "of", "at", "by", "an",
         "be", "this", "that", "from", "or", "are", "as", "was", "were", "been", "have", "has", "had",
@@ -46,7 +45,6 @@ public class HashtagGenerator {
                 List<String> suggestions = fetchSuggestions(title);
                 Map<String, Integer> wordFrequency = new HashMap<>();
                 
-                // Count word frequency across suggestions
                 for (String suggestion : suggestions) {
                     String[] words = suggestion.toLowerCase().split("\\s+");
                     Set<String> uniqueWords = new HashSet<>();
@@ -62,18 +60,15 @@ public class HashtagGenerator {
                     }
                 }
                 
-                // 3. Get top related words (frequency >= 1, sorted by frequency)
                 List<Map.Entry<String, Integer>> relatedWords = new ArrayList<>(wordFrequency.entrySet());
                 relatedWords.sort((a, b) -> b.getValue() - a.getValue());
                 
-                // 4. Add top 3-4 related words
                 int relatedToAdd = Math.min(4, relatedWords.size());
                 for (int i = 0; i < relatedToAdd; i++) {
-                    if (hashtags.size() >= 7) break; // Leave room for 2-3 viral tags
+                    if (hashtags.size() >= 7) break;
                     hashtags.add("#" + relatedWords.get(i).getKey());
                 }
                 
-                // 5. Create 1-2 smart compound hashtags
                 if (hashtags.size() < 9 && !relatedWords.isEmpty() && !titleWordSet.isEmpty()) {
                     String mainWord = titleWordSet.iterator().next();
                     String relatedWord = relatedWords.get(0).getKey();
@@ -88,7 +83,7 @@ public class HashtagGenerator {
                 Log.e(TAG, "API fetch failed", e);
             }
             
-            // 6. Add ONLY 2-3 viral tags (not 7!)
+            // 6. Add ONLY 2-3 viral tags
             String[] viral = {"#viral", "#trending", "#youtube", "#shorts", "#fyp"};
             int viralCount = 0;
             for (String v : viral) {
@@ -97,7 +92,6 @@ public class HashtagGenerator {
                 viralCount++;
             }
             
-            // 7. Build exactly 10 hashtags
             List<String> list = new ArrayList<>(hashtags);
             StringBuilder result = new StringBuilder();
             
