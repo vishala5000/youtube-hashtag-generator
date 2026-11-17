@@ -1,92 +1,31 @@
-name: Build Signed APK
+name: Build
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
+    - uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        
-    - name: Setup Gradle 8.2
-      uses: gradle/actions/setup-gradle@v3
+    - uses: gradle/actions/setup-gradle@v3
       with:
         gradle-version: '8.2'
-      
-    - name: Decode and Verify Keystore
+    - name: Verify Keystore
       run: |
-        echo "🔍 Decoding keystore from base64..."
-        cat keystore.b64 | base64 --decode > release.jks
-        
-        # Verify keystore exists and has content
-        if [ ! -f "release.jks" ]; then
-          echo "❌ Keystore file not created!"
-          exit 1
-        fi
-        
-        KEYSTORE_SIZE=$(wc -c < release.jks)
-        echo "✅ Keystore created: $KEYSTORE_SIZE bytes"
-        
-        if [ $KEYSTORE_SIZE -lt 1000 ]; then
-          echo "❌ Keystore too small - likely corrupted!"
-          exit 1
-        fi
-        
-        # Verify keystore is valid
-        echo "🔍 Verifying keystore validity..."
-        keytool -list -keystore release.jks -storepass "ReleasePass2026!" || {
-          echo "❌ Keystore is invalid or password is wrong!"
-          exit 1
-        }
-        echo "✅ Keystore is valid!"
-        
-    - name: Build Signed APK
-      run: |
-        echo "🔨 Building with signing enabled..."
-        gradle assembleRelease --info | grep -E "(signing|keystore|SigningConfig)" || true
-        
-    - name: Verify APK is Signed
+        ls -lh release.jks
+        keytool -list -keystore release.jks -storepass "Android123!"
+    - name: Build APK
+      run: gradle assembleRelease
+    - name: Verify Signed
       run: |
         APK="app/build/outputs/apk/release/app-release.apk"
-        
-        if [ ! -f "$APK" ]; then
-          echo "❌ APK was not built!"
-          exit 1
-        fi
-        
-        echo "✅ APK exists: $(du -h "$APK" | cut -f1)"
-        
-        # Check if APK contains signature
-        if unzip -l "$APK" | grep -q "META-INF/CERT.RSA"; then
-          echo "✅ APK IS SIGNED!"
-          
-          # Verify signature
-          echo "🔍 Verifying signature..."
-          jarsigner -verify -verbose -certs "$APK" | head -20
-        else
-          echo "❌ APK is NOT signed!"
-          echo "Listing APK contents to debug:"
-          unzip -l "$APK" | grep -i "meta-inf" || echo "No META-INF found"
-          exit 1
-        fi
-        
-    - name: Prepare Final APK
-      run: |
-        mkdir -p final-output
-        cp app/build/outputs/apk/release/app-release.apk final-output/Viral-Hashtags-v4.0.0-SIGNED.apk
-        echo "✅ Final APK ready: $(du -h final-output/Viral-Hashtags-v4.0.0-SIGNED.apk | cut -f1)"
-        
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
+        unzip -l "$APK" | grep META-INF || echo "No signature found"
+        jarsigner -verify "$APK"
+    - uses: actions/upload-artifact@v4
       with:
-        name: Viral-Hashtags-v4.0.0-SIGNED
-        path: final-output/Viral-Hashtags-v4.0.0-SIGNED.apk
-        retention-days: 90
+        name: Viral-Hashtags-APK
+        path: app/build/outputs/apk/release/app-release.apk

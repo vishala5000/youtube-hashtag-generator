@@ -8,15 +8,15 @@ android {
         applicationId "com.hashtag.generator"
         minSdk 24
         targetSdk 34
-        versionCode 5
-        versionName "4.0.0"
+        versionCode 6
+        versionName "5.0.0"
     }
     signingConfigs {
         release {
             storeFile file("../release.jks")
-            storePassword "ReleasePass2026!"
+            storePassword "Android123!"
             keyAlias "release-key"
-            keyPassword "ReleasePass2026!"
+            keyPassword "Android123!"
         }
     }
     buildTypes {
