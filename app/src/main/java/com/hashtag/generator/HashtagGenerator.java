@@ -17,7 +17,8 @@ public class HashtagGenerator {
         "how", "to", "in", "on", "the", "a", "for", "with", "and", "is", "it", "of", "at", "by", "an",
         "be", "this", "that", "from", "or", "are", "as", "was", "were", "been", "have", "has", "had",
         "do", "does", "did", "will", "would", "could", "should", "can", "what", "why", "when", "where",
-        "who", "which", "your", "my", "you", "me", "he", "she", "they", "we", "them", "us", "its", "about"
+        "who", "which", "your", "my", "you", "me", "he", "she", "they", "we", "them", "us", "its", "about",
+        "best", "top", "new", "old", "free", "paid", "easy", "fast", "quick", "simple", "video", "videos"
     ));
 
     public static String generateHashtags(String title) {
@@ -26,32 +27,75 @@ public class HashtagGenerator {
             
             Set<String> hashtags = new LinkedHashSet<>();
             
-            // 1. Extract words from title
+            // 1. Extract meaningful words from title
             String clean = title.toLowerCase().replaceAll("[^a-z0-9\\s]", "");
-            String[] words = clean.split("\\s+");
+            String[] titleWords = clean.split("\\s+");
+            Set<String> titleWordSet = new HashSet<>();
             
-            for (String word : words) {
+            for (String word : titleWords) {
                 if (word != null && word.length() >= 3 && !STOP_WORDS.contains(word)) {
                     hashtags.add("#" + word);
+                    titleWordSet.add(word);
                 }
             }
             
-            // 2. Fetch related hashtags from API
+            // 2. Fetch related suggestions from API
             try {
-                List<String> apiTags = fetchRelatedHashtags(title);
-                hashtags.addAll(apiTags);
+                List<String> suggestions = fetchSuggestions(title);
+                
+                // 3. Extract ONLY words that are related to title
+                Map<String, Integer> wordFrequency = new HashMap<>();
+                
+                for (String suggestion : suggestions) {
+                    String[] words = suggestion.toLowerCase().split("\\s+");
+                    
+                    // Check if this suggestion contains ANY title word
+                    boolean isRelated = false;
+                    for (String word : words) {
+                        if (titleWordSet.contains(word)) {
+                            isRelated = true;
+                            break;
+                        }
+                    }
+                    
+                    // Only extract words from related suggestions
+                    if (isRelated) {
+                        for (String word : words) {
+                            if (word.length() >= 3 && !STOP_WORDS.contains(word) && !titleWordSet.contains(word)) {
+                                wordFrequency.put(word, wordFrequency.getOrDefault(word, 0) + 1);
+                            }
+                        }
+                    }
+                }
+                
+                // 4. Add most frequent related words
+                List<Map.Entry<String, Integer>> sortedWords = new ArrayList<>(wordFrequency.entrySet());
+                sortedWords.sort((a, b) -> b.getValue() - a.getValue());
+                
+                for (int i = 0; i < Math.min(5, sortedWords.size()); i++) {
+                    if (hashtags.size() >= 8) break;
+                    hashtags.add("#" + sortedWords.get(i).getKey());
+                }
+                
+                // 5. Create 2-word compounds (title word + related word)
+                if (hashtags.size() < 10 && !sortedWords.isEmpty()) {
+                    String firstTitleWord = titleWordSet.iterator().next();
+                    String relatedWord = sortedWords.get(0).getKey();
+                    hashtags.add("#" + firstTitleWord + relatedWord);
+                }
+                
             } catch (Exception e) {
                 Log.e(TAG, "API fetch failed", e);
             }
             
-            // 3. Add viral tags to reach exactly 10
-            String[] viral = {"#viral", "#trending", "#youtube", "#shorts", "#fyp", "#explore", "#subscribe", "#content"};
+            // 6. Only add viral tags if we still don't have 10
+            String[] viral = {"#viral", "#trending", "#youtube", "#shorts", "#fyp", "#explore", "#subscribe"};
             for (String v : viral) {
                 if (hashtags.size() >= 10) break;
                 hashtags.add(v);
             }
             
-            // 4. Build exactly 10 hashtags
+            // 7. Build exactly 10 hashtags
             List<String> list = new ArrayList<>(hashtags);
             StringBuilder result = new StringBuilder();
             
@@ -67,12 +111,12 @@ public class HashtagGenerator {
             
         } catch (Exception e) {
             Log.e(TAG, "Error generating hashtags", e);
-            return "#viral #trending #youtube #shorts #fyp #explore #subscribe #content #video #instagram";
+            return "#viral #trending #youtube #shorts #fyp #explore #subscribe #content #video #trending";
         }
     }
     
-    private static List<String> fetchRelatedHashtags(String query) {
-        List<String> tags = new ArrayList<>();
+    private static List<String> fetchSuggestions(String query) {
+        List<String> suggestions = new ArrayList<>();
         try {
             String encodedQuery = URLEncoder.encode(query, "UTF-8");
             String urlString = "https://clients1.google.com/complete/search?client=youtube&ds=yt&q=" + encodedQuery;
@@ -92,29 +136,19 @@ public class HashtagGenerator {
                 }
                 in.close();
                 
-                // Extract suggestions
                 Pattern pattern = Pattern.compile("\"([^\"]+)\"");
                 Matcher matcher = pattern.matcher(content.toString());
                 
-                while (matcher.find() && tags.size() < 15) {
+                while (matcher.find() && suggestions.size() < 20) {
                     String suggestion = matcher.group(1).trim();
-                    if (suggestion.length() > 3 && suggestion.length() < 30) {
-                        // Extract individual words from suggestion
-                        String[] words = suggestion.toLowerCase().split("\\s+");
-                        for (String word : words) {
-                            if (word.length() >= 3 && !STOP_WORDS.contains(word)) {
-                                String tag = "#" + word;
-                                if (!tags.contains(tag)) {
-                                    tags.add(tag);
-                                }
-                            }
-                        }
+                    if (suggestion.length() > 3 && suggestion.length() < 50) {
+                        suggestions.add(suggestion);
                     }
                 }
             }
         } catch (Exception e) {
             Log.e(TAG, "Fetch error", e);
         }
-        return tags;
+        return suggestions;
     }
 }
