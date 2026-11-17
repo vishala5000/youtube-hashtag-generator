@@ -8,8 +8,8 @@ android {
         applicationId "com.hashtag.generator"
         minSdk 24
         targetSdk 34
-        versionCode 7
-        versionName "6.0.0"
+        versionCode 8
+        versionName "7.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {

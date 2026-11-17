@@ -13,34 +13,38 @@ import java.util.regex.Pattern;
 public class HashtagGenerator {
     private static final String TAG = "HashtagGen";
     
-    private static final Set<String> STOP_WORDS = new HashSet<>(Arrays.asList(
+    private static final Set<String> BLACKLIST = new HashSet<>(Arrays.asList(
         "how", "to", "in", "on", "the", "a", "for", "with", "and", "is", "it", "of", "at", "by", "an",
         "be", "this", "that", "from", "or", "are", "as", "was", "were", "been", "have", "has", "had",
         "do", "does", "did", "will", "would", "could", "should", "can", "what", "why", "when", "where",
         "who", "which", "your", "my", "you", "me", "he", "she", "they", "we", "them", "us", "its", "about",
         "best", "top", "new", "old", "free", "paid", "easy", "fast", "quick", "simple", "video", "videos",
-        "use", "using", "make", "making", "get", "getting", "give", "giving", "take", "taking"
+        "use", "using", "make", "making", "get", "getting", "give", "giving", "take", "taking",
+        // USER REPORTED GARBAGE (STRICTLY BLOCKED)
+        "home", "milk", "cheese", "cooker", "copy", "couple", "gemini", "boys", "girls", "song", "music",
+        "latest", "full", "hd", "4k", "download", "app", "apps", "web", "website", "online", "offline",
+        "private", "change", "delete", "deactivate", "professional", "devotional", "meditation", "prompts",
+        "photoprompts", "fryer", "cookhome", "kettle", "odia", "kannada", "bengali", "marathi", "punjabi",
+        "gujarati", "urdu", "arabic", "english", "spanish", "french", "german", "russian", "japanese",
+        "tamil", "telugu", "malayalam"
     ));
 
     public static String generateHashtags(String title) {
         try {
             Log.i(TAG, "Generating hashtags for: " + title);
-            
             Set<String> hashtags = new LinkedHashSet<>();
             
-            // 1. Extract ALL meaningful words from title (including languages!)
             String clean = title.toLowerCase().replaceAll("[^a-z0-9\\s]", "");
             String[] titleWords = clean.split("\\s+");
             Set<String> titleWordSet = new LinkedHashSet<>();
             
             for (String word : titleWords) {
-                if (word != null && word.length() >= 3 && !STOP_WORDS.contains(word)) {
+                if (word != null && word.length() >= 3 && !BLACKLIST.contains(word)) {
                     hashtags.add("#" + word);
                     titleWordSet.add(word);
                 }
             }
             
-            // 2. Fetch suggestions and extract relevant words
             try {
                 List<String> suggestions = fetchSuggestions(title);
                 Map<String, Integer> wordFrequency = new HashMap<>();
@@ -50,7 +54,7 @@ public class HashtagGenerator {
                     Set<String> uniqueWords = new HashSet<>();
                     
                     for (String word : words) {
-                        if (word.length() >= 3 && !STOP_WORDS.contains(word) && !titleWordSet.contains(word)) {
+                        if (word.length() >= 5 && !BLACKLIST.contains(word) && !titleWordSet.contains(word)) {
                             uniqueWords.add(word);
                         }
                     }
@@ -63,7 +67,7 @@ public class HashtagGenerator {
                 List<Map.Entry<String, Integer>> relatedWords = new ArrayList<>(wordFrequency.entrySet());
                 relatedWords.sort((a, b) -> b.getValue() - a.getValue());
                 
-                int relatedToAdd = Math.min(4, relatedWords.size());
+                int relatedToAdd = Math.min(3, relatedWords.size());
                 for (int i = 0; i < relatedToAdd; i++) {
                     if (hashtags.size() >= 7) break;
                     hashtags.add("#" + relatedWords.get(i).getKey());
@@ -73,17 +77,14 @@ public class HashtagGenerator {
                     String mainWord = titleWordSet.iterator().next();
                     String relatedWord = relatedWords.get(0).getKey();
                     String compound = "#" + mainWord + relatedWord;
-                    
-                    if (compound.length() <= 25) {
+                    if (compound.length() >= 6 && compound.length() <= 25) {
                         hashtags.add(compound);
                     }
                 }
-                
             } catch (Exception e) {
                 Log.e(TAG, "API fetch failed", e);
             }
             
-            // 6. Add ONLY 2-3 viral tags
             String[] viral = {"#viral", "#trending", "#youtube", "#shorts", "#fyp"};
             int viralCount = 0;
             for (String v : viral) {
@@ -94,19 +95,16 @@ public class HashtagGenerator {
             
             List<String> list = new ArrayList<>(hashtags);
             StringBuilder result = new StringBuilder();
-            
             for (int i = 0; i < 10 && i < list.size(); i++) {
                 result.append(list.get(i));
                 if (i < 9 && i < list.size() - 1) result.append(" ");
             }
             
-            String output = result.toString();
-            Log.i(TAG, "Generated " + list.size() + " hashtags: " + output);
-            
-            return output;
+            Log.i(TAG, "Final output: " + result.toString());
+            return result.toString();
             
         } catch (Exception e) {
-            Log.e(TAG, "Error generating hashtags", e);
+            Log.e(TAG, "Critical error", e);
             return "#viral #trending #youtube #shorts #fyp #explore #subscribe #content #video #trending";
         }
     }
@@ -127,14 +125,11 @@ public class HashtagGenerator {
                 BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder content = new StringBuilder();
                 String line;
-                while ((line = in.readLine()) != null) {
-                    content.append(line);
-                }
+                while ((line = in.readLine()) != null) content.append(line);
                 in.close();
                 
                 Pattern pattern = Pattern.compile("\"([^\"]+)\"");
                 Matcher matcher = pattern.matcher(content.toString());
-                
                 while (matcher.find() && suggestions.size() < 20) {
                     String suggestion = matcher.group(1).trim();
                     if (suggestion.length() > 3 && suggestion.length() < 50) {

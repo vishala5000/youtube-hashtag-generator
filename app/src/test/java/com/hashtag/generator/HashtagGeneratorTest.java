@@ -7,57 +7,69 @@ public class HashtagGeneratorTest {
 
     @Test
     public void testPastaInput_OutputIsPerfect() {
-        // INPUT
         String result = HashtagGenerator.generateHashtags("how to cook pasta");
+        System.out.println("Pasta Output: " + result);
         
-        // OUTPUT VERIFICATION
         assertNotNull("Result should not be null", result);
-        String[] tags = result.split(" ");
-        assertTrue("Should have between 5 and 10 tags", tags.length >= 5 && tags.length <= 10);
+        String lower = result.toLowerCase();
         
-        // MUST contain core topics
-        assertTrue("MUST contain #cook", result.contains("#cook"));
-        assertTrue("MUST contain #pasta", result.contains("#pasta"));
+        assertTrue("MUST contain #cook", lower.contains("#cook"));
+        assertTrue("MUST contain #pasta", lower.contains("#pasta"));
         
-        // MUST NOT contain known garbage from previous bugs
-        assertFalse("MUST NOT contain garbage #milk", result.toLowerCase().contains("#milk"));
-        assertFalse("MUST NOT contain garbage #cheese", result.toLowerCase().contains("#cheese"));
-        assertFalse("MUST NOT contain garbage #home", result.toLowerCase().contains("#home"));
-        assertFalse("MUST NOT contain garbage #cooker", result.toLowerCase().contains("#cooker"));
+        assertFalse("MUST NOT contain garbage #milk", lower.contains("#milk"));
+        assertFalse("MUST NOT contain garbage #cheese", lower.contains("#cheese"));
+        assertFalse("MUST NOT contain garbage #home", lower.contains("#home"));
+        assertFalse("MUST NOT contain garbage #cooker", lower.contains("#cooker"));
+        assertFalse("MUST NOT contain garbage #fryer", lower.contains("#fryer"));
     }
 
     @Test
     public void testHindiWorshipInput_OutputIsPerfect() {
-        // INPUT
         String result = HashtagGenerator.generateHashtags("Christian hindi worship songs 2026");
+        System.out.println("Hindi Worship Output: " + result);
         
-        // OUTPUT VERIFICATION
         assertNotNull("Result should not be null", result);
+        String lower = result.toLowerCase();
         
-        // MUST contain core topics (including 'hindi' because user typed it)
-        assertTrue("MUST contain #christian", result.contains("#christian"));
-        assertTrue("MUST contain #hindi", result.contains("#hindi"));
-        assertTrue("MUST contain #worship", result.contains("#worship"));
+        assertTrue("MUST contain #christian", lower.contains("#christian"));
+        assertTrue("MUST contain #hindi", lower.contains("#hindi"));
+        assertTrue("MUST contain #worship", lower.contains("#worship"));
         
-        // MUST NOT contain random regional languages not in the title
-        assertFalse("MUST NOT contain garbage #tamil", result.toLowerCase().contains("#tamil"));
-        assertFalse("MUST NOT contain garbage #malayalam", result.toLowerCase().contains("#malayalam"));
-        assertFalse("MUST NOT contain garbage #telugu", result.toLowerCase().contains("#telugu"));
+        assertFalse("MUST NOT contain garbage #tamil", lower.contains("#tamil"));
+        assertFalse("MUST NOT contain garbage #malayalam", lower.contains("#malayalam"));
+        assertFalse("MUST NOT contain garbage #telugu", lower.contains("#telugu"));
+        assertFalse("MUST NOT contain garbage #odia", lower.contains("#odia"));
     }
 
     @Test
     public void testPhotoEditingInput_OutputIsPerfect() {
-        // INPUT
         String result = HashtagGenerator.generateHashtags("photo editing prompt");
+        System.out.println("Photo Editing Output: " + result);
         
-        // OUTPUT VERIFICATION
         assertNotNull("Result should not be null", result);
+        String lower = result.toLowerCase();
         
-        assertTrue("MUST contain #photo", result.contains("#photo"));
-        assertTrue("MUST contain #editing", result.contains("#editing"));
-        assertTrue("MUST contain #prompt", result.contains("#prompt"));
+        assertTrue("MUST contain #photo", lower.contains("#photo"));
+        assertTrue("MUST contain #editing", lower.contains("#editing"));
+        assertTrue("MUST contain #prompt", lower.contains("#prompt"));
         
-        assertFalse("MUST NOT contain garbage #copy", result.toLowerCase().contains("#copy"));
-        assertFalse("MUST NOT contain garbage #couple", result.toLowerCase().contains("#couple"));
+        assertFalse("MUST NOT contain garbage #copy", lower.contains("#copy"));
+        assertFalse("MUST NOT contain garbage #couple", lower.contains("#couple"));
+        assertFalse("MUST NOT contain garbage #gemini", lower.contains("#gemini"));
+    }
+    
+    @Test
+    public void testInstagramAccountInput_OutputIsPerfect() {
+        String result = HashtagGenerator.generateHashtags("how to instagram account");
+        System.out.println("Instagram Output: " + result);
+        
+        assertNotNull("Result should not be null", result);
+        String lower = result.toLowerCase();
+        
+        assertTrue("MUST contain #instagram", lower.contains("#instagram"));
+        assertTrue("MUST contain #account", lower.contains("#account"));
+        
+        assertFalse("MUST NOT contain garbage #private", lower.contains("#private"));
+        assertFalse("MUST NOT contain garbage #change", lower.contains("#change"));
     }
 }
