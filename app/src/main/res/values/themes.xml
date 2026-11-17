@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.HashtagGenerator" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/red_primary</item>
+        <item name="colorPrimaryVariant">@color/red_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+    </style>
+</resources>
